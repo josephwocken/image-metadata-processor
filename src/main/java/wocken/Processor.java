@@ -1,5 +1,6 @@
 package wocken;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.ImageWriteException;
 import org.apache.commons.imaging.Imaging;
@@ -14,6 +15,7 @@ import org.apache.commons.imaging.formats.tiff.taginfos.TagInfoAscii;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputDirectory;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputField;
 import org.apache.commons.imaging.formats.tiff.write.TiffOutputSet;
+import wocken.json.GoogleMetadata;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -22,6 +24,10 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,9 +36,9 @@ import java.util.stream.Stream;
 
 public class Processor {
 
-    private static final String inputPathParentDir = "C:\\Users\\josep\\Desktop\\jpeg-testing";
-    private static final String outputPathParentDir = "C:\\Users\\josep\\Desktop\\jpeg-testing\\output";
-    private static final Object MUTEX = new Object();
+    private static final String inputPathParentDir = "C:\\Users\\josep\\Desktop\\jpeg-testing\\exif-testing";
+    private static final String outputPathParentDir = "C:\\Users\\josep\\Desktop\\jpeg-testing\\exif-testing\\output";
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     public static void main(String[] args) throws Exception {
         try {
@@ -40,15 +46,38 @@ public class Processor {
             files.forEach((String filePath) -> {
                 System.out.println(filePath);
                 File image = new File(filePath);
+                if (!image.exists()) {
+                    return;
+                }
                 System.out.println(image.getName());
                 String imageFileName = image.getName();
                 String jsonImageFilePath = inputPathParentDir + "\\" + imageFileName + ".json";
                 System.out.println(jsonImageFilePath);
                 File jsonFile = new File(jsonImageFilePath);
-                System.out.println("json file: " + jsonFile.exists());
-                System.out.println(image.exists());
+                if (!jsonFile.exists()) {
+                    return;
+                }
+                GoogleMetadata googleMetadata;
+                try {
+                    googleMetadata = mapper.readValue(jsonFile, GoogleMetadata.class);
+                    System.out.println(mapper.writeValueAsString(googleMetadata));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return;
+                }
+                if (null == googleMetadata
+                        || null == googleMetadata.getPhotoTakenTime()
+                        || null == googleMetadata.getPhotoTakenTime().getTimestamp()) {
+                    System.out.println("photo taken time doesn't exist in json");
+                    return;
+                }
+                Integer photoTakenTimestamp = googleMetadata.getPhotoTakenTime().getTimestamp();
+                OffsetDateTime photoTakenDateTime = OffsetDateTime.ofInstant(
+                        Instant.ofEpochSecond(photoTakenTimestamp),
+                        ZoneId.of("UTC")
+                );
+
                 Path outputPath = Paths.get(outputPathParentDir + "\\" + imageFileName);
-//                System.exit(0);
 
 
                 ImageMetadata metadata = null;
@@ -104,8 +133,9 @@ public class Processor {
                                         tagInfo.length,
                                         tagInfo.directoryType
                                 );
+                                String dateValue = getStringDate(photoTakenDateTime);
                                 try {
-                                    dir.add(newTagInfo, "1996:03:27");
+                                    dir.add(newTagInfo, dateValue);
                                 } catch (ImageWriteException e) {
                                     e.printStackTrace();
                                 }
@@ -122,7 +152,7 @@ public class Processor {
                                         tagInfo.directoryType
                                 );
                                 try {
-                                    dir.add(newTagInfo, "1996:03:27-01:02:03");
+                                    dir.add(newTagInfo, getStringDateAndTime(photoTakenDateTime));
                                 } catch (ImageWriteException e) {
                                     e.printStackTrace();
                                 }
@@ -140,7 +170,7 @@ public class Processor {
                                         tagInfo.directoryType
                                 );
                                 try {
-                                    dir.add(newTagInfo, "1996:03:27-01:02:03");
+                                    dir.add(newTagInfo, getStringDateAndTime(photoTakenDateTime));
                                 } catch (ImageWriteException e) {
                                     e.printStackTrace();
                                 }
@@ -158,7 +188,7 @@ public class Processor {
                                         tagInfo.directoryType
                                 );
                                 try {
-                                    dir.add(newTagInfo, "1996:03:27-01:02:03");
+                                    dir.add(newTagInfo, getStringDateAndTime(photoTakenDateTime));
                                 } catch (ImageWriteException e) {
                                     e.printStackTrace();
                                 }
@@ -175,7 +205,7 @@ public class Processor {
                                         tagInfo.directoryType
                                 );
                                 try {
-                                    dir.add(newTagInfo, "1996:03:27-01:02:03");
+                                    dir.add(newTagInfo, getStringDateAndTime(photoTakenDateTime));
                                 } catch (ImageWriteException e) {
                                     e.printStackTrace();
                                 }
@@ -199,7 +229,7 @@ public class Processor {
                                     TiffDirectoryType.EXIF_DIRECTORY_GPS
                             );
                             try {
-                                foundTiffOutputDir.add(gpsDateStampTagInfoAscii, "1996:03:27");
+                                foundTiffOutputDir.add(gpsDateStampTagInfoAscii, getStringDate(photoTakenDateTime));
                             } catch (ImageWriteException e) {
                                 e.printStackTrace();
                             }
@@ -220,7 +250,7 @@ public class Processor {
                 }
                 System.exit(0);
             });
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -241,7 +271,7 @@ public class Processor {
 
         List<String> result;
 
-        try (Stream<Path> walk = Files.walk(path)) {
+        try (Stream<Path> walk = Files.walk(path, 1)) {
             result = walk
                     .filter(p -> !Files.isDirectory(p))
                     // this is a path, not string,
@@ -266,6 +296,26 @@ public class Processor {
                     + field.getValueDescription());
         }
         return field;
+    }
+
+    /*
+        "1996:03:27-01:02:03"
+     */
+    private static String getStringDateAndTime(OffsetDateTime dateTime) {
+        int hour = dateTime.getHour();
+        int min = dateTime.getMinute();
+        int sec = dateTime.getSecond();
+        return getStringDate(dateTime) + "-" + hour + ":" + min + ":" + sec;
+    }
+
+    /*
+        returns 'YYYY:MM:dd'
+     */
+    private static String getStringDate(OffsetDateTime dateTime) {
+        int year = dateTime.getYear();
+        int month = dateTime.getMonthValue();
+        int day = dateTime.getDayOfMonth();
+        return year + ":" + month + ":" + day;
     }
 
 }
