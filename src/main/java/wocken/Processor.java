@@ -36,8 +36,8 @@ import java.util.stream.Stream;
 
 public class Processor {
 
-    private static final String inputPathParentDir = "C:\\Users\\josep\\Desktop\\jpeg-testing\\exif-testing";
-    private static final String outputPathParentDir = "C:\\Users\\josep\\Desktop\\jpeg-testing\\exif-testing\\output";
+    private static final String inputPathParentDir = "/Users/joewocken/Desktop/jpeg-testing";
+    private static final String outputPathParentDir = "/Users/joewocken/Desktop/jpeg-testing/output";
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static void main(String[] args) throws Exception {
@@ -51,7 +51,7 @@ public class Processor {
                 }
                 System.out.println(image.getName());
                 String imageFileName = image.getName();
-                String jsonImageFilePath = inputPathParentDir + "\\" + imageFileName + ".json";
+                String jsonImageFilePath = inputPathParentDir + "/" + imageFileName + ".json";
                 System.out.println(jsonImageFilePath);
                 File jsonFile = new File(jsonImageFilePath);
                 if (!jsonFile.exists()) {
@@ -77,7 +77,7 @@ public class Processor {
                         ZoneId.of("UTC")
                 );
 
-                Path outputPath = Paths.get(outputPathParentDir + "\\" + imageFileName);
+                Path outputPath = Paths.get(outputPathParentDir + "/" + imageFileName);
 
 
                 ImageMetadata metadata = null;
