@@ -1,3 +1,10 @@
+## image-metadata-processor
+
+### how to run
+* java 11
+* run main method
+
+
 ### todo
 * run report on which all file extensions are in the folder
 * get dropbox to sync folder locally
