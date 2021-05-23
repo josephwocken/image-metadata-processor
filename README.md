@@ -17,6 +17,8 @@
 * there may be some heic files in there, figure out how many
 
 ### notes
+useful exif tag docs https://www.awaresystems.be/imaging/tiff/tifftags/search.html?q=date&Submit=Find+Tags
+
 google photos is using these 2 fields i'm pretty sure: (this is wrong!!)
 * GPS Date Stamp
 * GPS Time Stamp
